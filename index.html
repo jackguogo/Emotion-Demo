@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>情感识别与支持 Demo</title>
+    <style>
+      :root {
+        --bg: #f6f1ea;
+        --panel: rgba(255, 255, 255, 0.82);
+        --panel-strong: rgba(255, 255, 255, 0.94);
+        --text: #1d2939;
+        --muted: #667085;
+        --line: rgba(17, 24, 39, 0.08);
+        --shadow: 0 28px 70px rgba(99, 102, 241, 0.08);
+        --accent: #d97706;
+        --accent-soft: rgba(217, 119, 6, 0.12);
+        --success: #0f766e;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 28%),
+          radial-gradient(circle at 85% 10%, rgba(14, 165, 233, 0.12), transparent 24%),
+          linear-gradient(135deg, #f8f4ee 0%, #eef7f6 100%);
+      }
+
+      body.crisis {
+        background:
+          radial-gradient(circle at top left, rgba(220, 38, 38, 0.16), transparent 28%),
+          linear-gradient(135deg, #18181b 0%, #27272a 100%);
+        color: #fafafa;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 28px 18px 40px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 18px;
+        align-items: stretch;
+        margin-bottom: 18px;
+      }
+
+      .hero-card,
+      .meta-card,
+      .shell {
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      body.crisis .hero-card,
+      body.crisis .meta-card,
+      body.crisis .shell {
+        background: rgba(24, 24, 27, 0.78);
+        border-color: rgba(239, 68, 68, 0.2);
+        box-shadow: 0 28px 70px rgba(127, 29, 29, 0.3);
+      }
+
+      .hero-card {
+        border-radius: 34px;
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -60px -80px auto;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.24);
+        filter: blur(8px);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.54);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+      }
+
+      body.crisis .eyebrow {
+        color: rgba(254, 226, 226, 0.9);
+        background: rgba(185, 28, 28, 0.16);
+        border-color: rgba(248, 113, 113, 0.3);
+      }
+
+      .hero-card h1 {
+        margin: 18px 0 10px;
+        font-family: "STSong", "Songti SC", serif;
+        font-size: clamp(34px, 5vw, 58px);
+        line-height: 1.04;
+      }
+
+      .hero-card p {
+        margin: 0;
+        max-width: 42ch;
+        font-size: 15px;
+        line-height: 1.8;
+        color: var(--muted);
+      }
+
+      body.crisis .hero-card p {
+        color: rgba(254, 226, 226, 0.78);
+      }
+
+      .hero-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .stat {
+        min-width: 120px;
+        padding: 14px 16px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.66);
+        border: 1px solid rgba(255, 255, 255, 0.76);
+      }
+
+      body.crisis .stat {
+        background: rgba(185, 28, 28, 0.1);
+        border-color: rgba(248, 113, 113, 0.16);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+
+      .stat span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      body.crisis .stat span {
+        color: rgba(254, 226, 226, 0.7);
+      }
+
+      .meta-card {
+        border-radius: 34px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .meta-card h2,
+      .section-title {
+        margin: 0 0 12px;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      body.crisis .meta-card h2,
+      body.crisis .section-title {
+        color: rgba(254, 226, 226, 0.72);
+      }
+
+      .pill-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .soft-pill {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(217, 119, 6, 0.08);
+        border: 1px solid rgba(217, 119, 6, 0.14);
+        font-size: 13px;
+      }
+
+      body.crisis .soft-pill {
+        background: rgba(185, 28, 28, 0.14);
+        border-color: rgba(248, 113, 113, 0.24);
+      }
+
+      .meta-note {
+        padding: 16px;
+        border-radius: 22px;
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        line-height: 1.7;
+        font-size: 14px;
+      }
+
+      body.crisis .meta-note {
+        background: rgba(39, 39, 42, 0.92);
+        border-color: rgba(248, 113, 113, 0.16);
+      }
+
+      .tabbar {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 8px 2px 2px;
+        margin-bottom: 18px;
+        scrollbar-width: none;
+      }
+
+      .tabbar::-webkit-scrollbar {
+        display: none;
+      }
+
+      .tab {
+        border: 0;
+        padding: 12px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.68);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        color: var(--text);
+        white-space: nowrap;
+        cursor: pointer;
+        font: inherit;
+        transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .tab.active {
+        transform: translateY(-1px);
+        background: #111827;
+        color: #fff;
+        box-shadow: 0 14px 30px rgba(17, 24, 39, 0.18);
+      }
+
+      body.crisis .tab {
+        background: rgba(39, 39, 42, 0.86);
+        color: #fafafa;
+        border-color: rgba(248, 113, 113, 0.18);
+      }
+
+      body.crisis .tab.active {
+        background: #b42318;
+        box-shadow: 0 14px 30px rgba(180, 35, 24, 0.28);
+      }
+
+      .shell {
+        border-radius: 38px;
+        padding: 20px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 0.88fr 1.12fr;
+        gap: 18px;
+      }
+
+      .panel {
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        padding: 22px;
+      }
+
+      body.crisis .panel {
+        background: rgba(39, 39, 42, 0.92);
+        border-color: rgba(248, 113, 113, 0.16);
+      }
+
+      .panel h3 {
+        margin: 0 0 14px;
+        font-size: 18px;
+      }
+
+      .composer {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 100%;
+      }
+
+      .composer textarea {
+        width: 100%;
+        min-height: 220px;
+        resize: vertical;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 24px;
+        padding: 18px;
+        font: inherit;
+        line-height: 1.75;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.9);
+        outline: none;
+      }
+
+      .composer textarea:focus {
+        border-color: rgba(217, 119, 6, 0.4);
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.1);
+      }
+
+      body.crisis .composer textarea {
+        background: rgba(24, 24, 27, 0.9);
+        color: #fafafa;
+        border-color: rgba(248, 113, 113, 0.18);
+      }
+
+      .emoji-selector {
+        display: flex;
+        gap: 10px;
+        margin-top: 4px;
+        padding: 4px 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .emoji-selector::-webkit-scrollbar {
+        display: none;
+      }
+
+      .emoji-btn {
+        font-size: 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 12px;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .emoji-btn:hover {
+        background: var(--accent-soft);
+        transform: scale(1.15);
+      }
+
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      button.primary,
+      button.secondary {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, #111827 0%, #374151 100%);
+        color: #fff;
+        box-shadow: 0 18px 30px rgba(17, 24, 39, 0.16);
+      }
+
+      button.primary:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+
+      button.secondary {
+        background: rgba(217, 119, 6, 0.1);
+        color: #9a3412;
+      }
+
+      body.crisis button.primary {
+        background: linear-gradient(135deg, #b42318 0%, #7f1d1d 100%);
+        box-shadow: 0 18px 30px rgba(127, 29, 29, 0.25);
+      }
+
+      body.crisis button.secondary {
+        background: rgba(185, 28, 28, 0.16);
+        color: #fecaca;
+      }
+
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      body.crisis .hint {
+        color: rgba(254, 226, 226, 0.72);
+      }
+
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .title-block h2 {
+        margin: 0;
+        font-family: "STSong", "Songti SC", serif;
+        font-size: clamp(28px, 4vw, 42px);
+      }
+
+      .title-block p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      body.crisis .title-block p {
+        color: rgba(254, 226, 226, 0.78);
+      }
+
+      .badge {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #9a3412;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      body.crisis .badge {
+        background: rgba(185, 28, 28, 0.18);
+        color: #fecaca;
+      }
+
+      .bubble,
+      .block {
+        border-radius: 26px;
+        padding: 18px;
+        background: rgba(248, 250, 252, 0.86);
+        border: 1px solid rgba(15, 23, 42, 0.06);
+      }
+
+      body.crisis .bubble,
+      body.crisis .block {
+        background: rgba(24, 24, 27, 0.88);
+        border-color: rgba(248, 113, 113, 0.14);
+      }
+
+      .bubble small,
+      .block small {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      body.crisis .bubble small,
+      body.crisis .block small {
+        color: rgba(254, 226, 226, 0.68);
+      }
+
+      .analysis-grid {
+        display: grid;
+        gap: 12px;
+        margin: 16px 0;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: rgba(14, 165, 233, 0.1);
+        color: #075985;
+      }
+
+      .tag.emphasis {
+        background: rgba(17, 24, 39, 0.08);
+        color: #111827;
+      }
+
+      body.crisis .tag {
+        background: rgba(185, 28, 28, 0.18);
+        color: #fecaca;
+      }
+
+      body.crisis .tag.emphasis {
+        background: rgba(239, 68, 68, 0.24);
+      }
+
+      .probabilities {
+        display: grid;
+        gap: 12px;
+      }
+
+      .prob {
+        display: grid;
+        grid-template-columns: 56px 1fr 42px;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+      }
+
+      body.crisis .bar {
+        background: rgba(248, 113, 113, 0.12);
+      }
+
+      .bar > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+      }
+
+      .reply {
+        margin-top: 16px;
+        padding: 20px;
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(255, 247, 237, 0.85), rgba(255, 255, 255, 0.9));
+        border: 1px solid rgba(217, 119, 6, 0.14);
+      }
+
+      body.crisis .reply {
+        background: linear-gradient(135deg, rgba(127, 29, 29, 0.18), rgba(39, 39, 42, 0.92));
+        border-color: rgba(248, 113, 113, 0.22);
+      }
+
+      .reply-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .reply-body {
+        display: grid;
+        gap: 10px;
+        line-height: 1.8;
+        font-size: 15px;
+      }
+
+      .hotline {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(180, 35, 24, 0.14);
+        color: var(--danger);
+      }
+
+      body.crisis .hotline {
+        background: rgba(185, 28, 28, 0.18);
+        color: #fecaca;
+      }
+
+      .footer-note {
+        margin-top: 16px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      body.crisis .footer-note {
+        color: rgba(254, 226, 226, 0.66);
+      }
+
+      @media (max-width: 920px) {
+        .hero,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-card h1 {
+          max-width: 10ch;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 16px 12px 24px;
+        }
+
+        .hero-card,
+        .meta-card,
+        .shell,
+        .panel {
+          border-radius: 26px;
+        }
+
+        .result-head,
+        .reply-head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page" id="app"></div>
+
+    <script>
+      const scenarioBase = [
+        {
+          id: 0,
+          label: "AI 解析",
+          emoji: "✨",
+          isCustom: true
+        },
+        {
+          id: 1,
+          label: "平静",
+          title: "平静",
+          english: "Calm",
+          subtitle: "平淡是生活最真实的底色",
+          emoji: "😌",
+          user: "今天没什么特别的事，就是正常的一天。",
+          l1Tags: ["没什么特别", "正常"],
+          l1Result: "预判平静",
+          l2: "平叙句式 · 无强烈标点 · 消息长度适中",
+          l3: [
+            { name: "平静", value: 0.82, color: "#0f766e" },
+            { name: "快乐", value: 0.1, color: "#d97706" }
+          ],
+          strategy: "正向强化",
+          reply: "平平淡淡的一天，有时候也挺好的。\n在忙碌的生活里，能有一天不被什么事打扰，其实蛮难得的。\n今天有没有什么小事让你觉得还不错的？哪怕是一顿好吃的也算。",
+          mode: "support"
+        },
+        {
+          id: 2,
+          label: "快乐",
+          title: "快乐",
+          english: "Joy",
+          subtitle: "分享喜悦，让快乐翻倍",
+          emoji: "😊",
+          user: "今天面试通过了！！太开心了哈哈哈，努力终于有回报了！",
+          l1Tags: ["开心", "哈哈哈"],
+          l1Result: "预判快乐",
+          l2: "多感叹号 · 重复语气词 · 积极词汇密集",
+          l3: [{ name: "快乐", value: 0.95, color: "#ea580c" }],
+          strategy: "正向强化",
+          reply: "面试通过了，这真的太棒了。\n你值得为自己骄傲，这种努力被看到的感觉很珍贵。\n如果你愿意，也可以继续讲讲面试过程里最让你得意的一刻。",
+          mode: "support"
+        },
+        {
+          id: 3,
+          label: "悲伤",
+          title: "悲伤",
+          english: "Sadness",
+          subtitle: "允许眼泪流淌，是自愈的开始",
+          emoji: "😢",
+          user: "分手一个月了，以为自己好了，今天路过我们常去的那家店，眼泪一下就出来了...",
+          l1Tags: ["分手", "眼泪"],
+          l1Result: "预判悲伤",
+          l2: "省略号指向回忆与低落 · 第一人称高频",
+          l3: [
+            { name: "悲伤", value: 0.88, color: "#2563eb" },
+            { name: "孤独", value: 0.35, color: "#0284c7" }
+          ],
+          strategy: "深度陪伴",
+          reply: "那些回忆突然涌上来的时候，会很难受。\n眼泪不是脆弱，而是那段关系对你真的重要。\n你不用催自己快点好起来，先允许这一刻存在。",
+          mode: "support"
+        },
+        {
+          id: 4,
+          label: "焦虑",
+          title: "焦虑",
+          english: "Anxiety",
+          subtitle: "把目光从未来的担忧收回当下",
+          emoji: "😰",
+          user: "后天就要答辩了，我什么都没准备好，感觉自己一定会搞砸的。",
+          l1Tags: ["答辩", "搞砸"],
+          l1Result: "预判焦虑",
+          l2: "灾难化表述 · 对未来结果的高强度担忧",
+          l3: [{ name: "焦虑", value: 0.91, color: "#7c3aed" }],
+          strategy: "呼吸引导",
+          reply: "临近答辩，紧张很正常。\n你说自己一定会搞砸，但这更像是焦虑在放大风险。\n先把最担心的一件事单独拎出来，我们可以只处理那一件。",
+          mode: "support"
+        },
+        {
+          id: 5,
+          label: "愤怒",
+          title: "愤怒",
+          english: "Anger",
+          subtitle: "看见情绪背后的委屈与界限",
+          emoji: "😡",
+          user: "我做的方案被领导当着全组的面批了一顿，凭什么？？他自己提的需求反复变，现在甩锅给我！！",
+          l1Tags: ["凭什么", "甩锅"],
+          l1Result: "预判愤怒",
+          l2: "反问句式明显 · 否定密度高 · 连续强调标点",
+          l3: [
+            { name: "愤怒", value: 0.89, color: "#dc2626" },
+            { name: "压力", value: 0.3, color: "#475569" }
+          ],
+          strategy: "接纳引导",
+          reply: "被当众批评，而且并不公平，这种愤怒完全合理。\n你的情绪不是反应过度，而是在提醒你这件事越界了。\n如果你愿意，可以先说说你最想为自己辩护的那一句话。",
+          mode: "support"
+        },
+        {
+          id: 6,
+          label: "压力",
+          title: "压力",
+          english: "Stress",
+          subtitle: "紧绷的弦也需要放松的时刻",
+          emoji: "😫",
+          user: "今天又加班到现在才回家，感觉每天都好累，不知道这样的日子什么时候是个头。",
+          l1Tags: ["加班", "累"],
+          l1Result: "预判压力",
+          l2: "持续性时间词明显 · 疲惫与无助交织",
+          l3: [
+            { name: "压力", value: 0.85, color: "#475569" },
+            { name: "无助", value: 0.45, color: "#71717a" }
+          ],
+          strategy: "减压释放",
+          reply: "这么晚才到家，你今天已经撑了很久。\n长期透支会让人觉得看不到头，这不是你不够能扛。\n现在先让身体缓一缓，哪怕只是安静坐两分钟也算开始。",
+          mode: "support"
+        },
+        {
+          id: 7,
+          label: "孤独",
+          title: "孤独",
+          english: "Loneliness",
+          subtitle: "在喧嚣中寻找属于自己的回声",
+          emoji: "🥀",
+          user: "一个人在出租屋里，朋友圈都在晒周末聚会，感觉就我一个人被世界遗忘了。",
+          l1Tags: ["一个人", "被遗忘"],
+          l1Result: "预判孤独",
+          l2: "对比句式突出落差感 · 社交场景触发孤立感",
+          l3: [
+            { name: "孤独", value: 0.87, color: "#0284c7" },
+            { name: "悲伤", value: 0.32, color: "#2563eb" }
+          ],
+          strategy: "陪伴连接",
+          reply: "看到别人热闹，自己一个人时，落差感会被放大。\n你能把这种感觉说出来，本身就在主动寻找连接。\n现在这段时间，我会留在这里陪你。",
+          mode: "support"
+        },
+        {
+          id: 8,
+          label: "内疚",
+          title: "内疚",
+          english: "Guilt",
+          subtitle: "原谅自己的不完美",
+          emoji: "😔",
+          user: "今天跟妈妈打电话又吵了起来，挂了电话特别后悔，她年纪大了其实就是关心我，都怪我脾气太差了。",
+          l1Tags: ["后悔", "都怪我"],
+          l1Result: "预判内疚",
+          l2: "强烈自责倾向 · 自我否定明显",
+          l3: [
+            { name: "内疚", value: 0.83, color: "#65a30d" },
+            { name: "悲伤", value: 0.3, color: "#2563eb" }
+          ],
+          strategy: "自我接纳",
+          reply: "挂电话后会后悔，说明你心里很在乎妈妈。\n情绪冲上来的时候，很多人都会说出自己事后不想说的话。\n你不是坏，只是那一刻太累或太急了。",
+          mode: "support"
+        },
+        {
+          id: 9,
+          label: "无助",
+          title: "无助",
+          english: "Helpless",
+          subtitle: "在迷茫中寻找微光",
+          emoji: "😞",
+          user: "投了几十份简历全没回音，感觉自己什么都不行，不知道未来在哪里。",
+          l1Tags: ["全没回音", "不知道未来"],
+          l1Result: "预判无助",
+          l2: "全称否定明显 · 未来感受迷茫",
+          l3: [
+            { name: "无助", value: 0.86, color: "#71717a" },
+            { name: "焦虑", value: 0.28, color: "#7c3aed" }
+          ],
+          strategy: "希望重建",
+          reply: "长时间没有回应，真的会很打击人。\n但你还在持续投递，说明你并没有放弃。\n这种时候先别急着给自己下结论，我们可以先找一个最可调整的点。",
+          mode: "support"
+        },
+        {
+          id: 10,
+          label: "危机",
+          title: "紧急危机",
+          english: "Crisis Intervention",
+          subtitle: "触发最高级安全响应",
+          emoji: "🚨",
+          user: "活着好累，真的不想活了。",
+          l1Tags: ["不想活", "极度痛苦"],
+          l1Result: "触发危机关键词，立即进入安全流程",
+          l2: "危机态不再展示普通安抚模型",
+          l3: null,
+          strategy: "危机干预",
+          reply: "我能感受到你现在非常痛苦。\n谢谢你把这件事说出来，这很重要。\n如果你此刻有伤害自己的风险，请立刻联系身边可信任的人，或直接联系专业援助。\n📞 心理援助热线：400-161-9995\n📞 北京心理危机干预中心：010-82951332\n📞 紧急情况下请直接联系当地急救资源。",
+          mode: "crisis",
+          isCrisis: true
+        }
+      ];
+
+      const state = {
+        activeIndex: 0,
+        customInput: "",
+        customResult: null,
+        speaking: false
+      };
+
+      function cloneScene(scene) {
+        return JSON.parse(JSON.stringify(scene));
+      }
+
+      function analyzeInput(text) {
+        const input = text.trim();
+        const normalized = input.toLowerCase();
+
+        const crisisKeywords = ["不想活", "活着好累", "自杀", "结束自己", "轻生", "不如死"];
+        if (crisisKeywords.some((word) => input.includes(word) || normalized.includes(word))) {
+          const crisis = cloneScene(scenarioBase.find((item) => item.id === 10));
+          crisis.user = input;
+          crisis.label = "AI 解析";
+          return crisis;
+        }
+
+        const matchers = [
+          { words: ["开心", "通过", "喜悦", "高兴", "成功", "拿到"], id: 2 },
+          { words: ["分手", "难过", "眼泪", "伤心", "失去"], id: 3 },
+          { words: ["焦虑", "紧张", "答辩", "害怕", "担心", "搞砸"], id: 4 },
+          { words: ["生气", "凭什么", "甩锅", "气死", "愤怒"], id: 5 },
+          { words: ["加班", "好累", "撑不住", "疲惫", "压力"], id: 6 },
+          { words: ["一个人", "孤独", "被遗忘", "没人理"], id: 7 },
+          { words: ["后悔", "内疚", "都怪我", "对不起"], id: 8 },
+          { words: ["没回音", "什么都不行", "未来在哪里", "不知道怎么办"], id: 9 }
+        ];
+
+        const matched = matchers.find((item) => item.words.some((word) => input.includes(word)));
+        if (matched) {
+          const scene = cloneScene(scenarioBase.find((item) => item.id === matched.id));
+          scene.user = input;
+          scene.label = "AI 解析";
+          scene.l1Tags = extractTags(input);
+          return scene;
+        }
+
+        const fallback = cloneScene(scenarioBase.find((item) => item.id === 1));
+        fallback.user = input;
+        fallback.label = "AI 解析";
+        fallback.title = "细微波动";
+        fallback.english = "Mixed Feelings";
+        fallback.subtitle = "很多情绪并不轰烈，但依旧值得被看见";
+        fallback.emoji = "🌿";
+        fallback.l1Tags = extractTags(input);
+        return fallback;
+      }
+
+      function extractTags(text) {
+        const clean = text.replace(/[，。！？、,.!?]/g, " ").trim();
+        const chunks = clean.split(/\s+/).filter(Boolean);
+        const tags = [];
+        for (const chunk of chunks) {
+          if (chunk.length >= 2) tags.push(chunk.slice(0, 6));
+          if (tags.length === 3) break;
+        }
+        return tags.length ? tags : ["情绪波动", "需要被听见"];
+      }
+
+      function currentScene() {
+        if (state.activeIndex === 0 && state.customResult) return state.customResult;
+        return scenarioBase[state.activeIndex];
+      }
+
+      function stopSpeaking() {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+        state.speaking = false;
+      }
+
+      function toggleSpeak() {
+        const scene = currentScene();
+        if (!("speechSynthesis" in window)) {
+          alert("当前浏览器不支持语音播报。");
+          return;
+        }
+        if (state.speaking) {
+          stopSpeaking();
+          render();
+          return;
+        }
+        const text = scene.reply.replace(/📞/g, "");
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "zh-CN";
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.onend = () => {
+          state.speaking = false;
+          render();
+        };
+        state.speaking = true;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+        render();
+      }
+
+      function renderTabs(scene) {
+        return `
+          <div class="tabbar">
+            ${scenarioBase
+              .map(
+                (item, index) => `
+                  <button class="tab ${state.activeIndex === index ? "active" : ""}" data-tab="${index}">
+                    ${item.emoji} ${item.label}
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderComposer() {
+        return `
+          <div class="panel composer">
+            <div>
+              <h3>输入一段心事，生成现场演示卡片</h3>
+              <p class="hint">这是本地演示版，不调用外部模型。会根据关键词做即时情绪映射，用于演示方案效果，（点击输入框下的Emoji图标，快入录入对应情绪文案）。</p>
+            </div>
+            <textarea id="customInput" placeholder="比如：今天虽然很累，但回家路上喝到一杯热可可，整个人缓下来了。">${state.customInput}</textarea>
+            <div class="emoji-selector">
+              ${scenarioBase.slice(1).map((item) => `
+                <button class="emoji-btn" data-id="${item.id}" title="${item.label}">${item.emoji}</button>
+              `).join('')}
+            </div>
+            <div class="action-row">
+              <button class="primary" id="analyzeBtn" ${state.customInput.trim() ? "" : "disabled"}>生成情绪卡片</button>
+              <button class="secondary" id="loadExampleBtn">填入示例文案</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderResult(scene) {
+        const isCrisis = Boolean(scene.isCrisis);
+        return `
+          <div class="panel">
+            <div class="result-head">
+              <div class="title-block">
+                <div class="eyebrow">${state.activeIndex === 0 ? "Demo dynamic scene" : "Preset scene"} · ${scene.emoji}</div>
+                <h2>${scene.title} <span style="font-size:0.48em;opacity:0.68;">(${scene.english})</span></h2>
+                <p>${scene.subtitle}</p>
+              </div>
+              <div class="badge">策略：${scene.strategy}</div>
+            </div>
+
+            <div class="bubble">
+              <small>用户输入</small>
+              <div>“${scene.user}”</div>
+            </div>
+
+            <div class="analysis-grid">
+              <div class="block">
+                <small>语义特征提取</small>
+                <div class="tag-row">
+                  ${scene.l1Tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+                  <span class="tag emphasis">${scene.l1Result}</span>
+                </div>
+              </div>
+
+              <div class="block">
+                <small>语气与句式判断</small>
+                <div>${scene.l2}</div>
+              </div>
+            </div>
+
+            ${
+              scene.l3
+                ? `
+              <div class="block" style="margin-top: 16px;">
+                <small>模型情绪概率</small>
+                <div class="probabilities">
+                  ${scene.l3
+                    .map(
+                      (p) => `
+                    <div class="prob">
+                      <span>${p.name}</span>
+                      <div class="bar"><span style="width:${p.value * 100}%; background:${p.color}"></span></div>
+                      <span style="text-align:right">${Math.round(p.value * 100)}%</span>
+                    </div>
+                  `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `
+                : ""
+            }
+
+            <div class="reply">
+              <div class="reply-head">
+                <strong>AI 心语回复</strong>
+                <button id="speakBtn" style="border:0; background:none; cursor:pointer; font-size:18px;" title="语音播报">
+                  ${state.speaking ? "⏹️" : "🔊"}
+                </button>
+              </div>
+              <div class="reply-body">
+                ${scene.reply
+                  .split("\n")
+                  .map((line) =>
+                    line.includes("📞")
+                      ? `<div class="hotline">${line}</div>`
+                      : `<div>${line}</div>`
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderWelcome() {
+        return `
+          <div class="panel">
+            <div class="result-head">
+              <div class="title-block">
+                <div class="eyebrow">Demo waiting state · ✨</div>
+                <h2>等待生成你的情绪卡片 <span style="font-size:0.48em;opacity:0.68;">(Ready to Demo)</span></h2>
+                <p>输入一句真实心情，右侧会即时生成一张演示版情绪光谱卡片，包含语义提取、语气判断、概率分布和支持性回复。</p>
+              </div>
+              <div class="badge">零依赖本地演示</div>
+            </div>
+
+            <div class="bubble">
+              <small>建议演示流程</small>
+              <div>先输入一句自定义文本演示动态解析，再切换顶部标签展示“快乐 / 焦虑 / 危机”等预设场景。</div>
+            </div>
+
+            <div class="analysis-grid">
+              <div class="block">
+                <small>你可以演示的内容</small>
+                <div class="tag-row">
+                  <span class="tag">自定义输入</span>
+                  <span class="tag">场景切换</span>
+                  <span class="tag">危机干预</span>
+                  <span class="tag">概率条动画</span>
+                  <span class="tag">语音播报</span>
+                </div>
+              </div>
+
+              <div class="block">
+                <small>推荐示例</small>
+                <div>“后天就要答辩了，我总觉得自己会讲不好，越想越紧张。”</div>
+              </div>
+            </div>
+
+            <div class="reply">
+              <div class="reply-head">
+                <strong>演示说明</strong>
+              </div>
+              <div class="reply-body">
+                <div>这个版本不依赖外部 API，适合离线或受限网络环境下做产品展示。</div>
+
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function render() {
+        const scene = currentScene();
+        const isCrisis = Boolean(scene.isCrisis);
+        document.body.className = isCrisis ? "crisis" : "";
+
+        const customPending = state.activeIndex === 0 && !state.customResult;
+        const app = document.getElementById("app");
+        app.innerHTML = `
+          <section class="hero">
+            <div class="hero-card">
+              <div class="eyebrow">Emotion support demo</div>
+              <h1>灵曦心语·情绪识别与支持 演示界面</h1>
+              <p>根据输入的文案，生成情绪卡片</p>
+              <div class="hero-stats">
+                <div class="stat"><strong>11</strong><span>预设情绪场景</span></div>
+                <div class="stat"><strong>1</strong><span>本地动态解析入口</span></div>
+                <div class="stat"><strong>Live</strong><span>浏览器语音播报</span></div>
+              </div>
+            </div>
+            <div class="meta-card">
+              <div>
+                <h2>演示亮点</h2>
+                <div class="pill-grid">
+                  <span class="soft-pill">场景切换</span>
+                  <span class="soft-pill">危机态响应</span>
+                  <span class="soft-pill">概率条可视化</span>
+                  <span class="soft-pill">AI 心语回复</span>
+                  <span class="soft-pill">本地语音陪伴</span>
+                </div>
+              </div>
+              <div class="meta-note">
+                当前模式：<strong>${customPending ? "等待输入" : scene.title}</strong><br />
+                ${customPending ? "左下角输入任意一句话，即可快速生成演示卡片。" : "你也可以切换顶部标签，直接展示不同情绪案例。"}
+              </div>
+            </div>
+          </section>
+
+          ${renderTabs(scene)}
+
+          <section class="shell">
+            <div class="layout">
+              ${renderComposer()}
+              ${customPending ? renderWelcome() : renderResult(scene)}
+            </div>
+          </section>
+        `;
+
+        bindEvents();
+      }
+
+      function bindEvents() {
+        document.querySelectorAll("[data-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            stopSpeaking();
+            state.activeIndex = Number(button.dataset.tab);
+            render();
+          });
+        });
+
+        const textarea = document.getElementById("customInput");
+        if (textarea) {
+          textarea.addEventListener("input", (event) => {
+            state.customInput = event.target.value;
+            const button = document.getElementById("analyzeBtn");
+            if (button) button.disabled = !state.customInput.trim();
+          });
+        }
+
+        document.querySelectorAll(".emoji-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = parseInt(btn.dataset.id);
+            const scene = scenarioBase.find(s => s.id === id);
+            if (scene) {
+              state.customInput = scene.user;
+              render();
+            }
+          });
+        });
+
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        if (analyzeBtn) {
+          analyzeBtn.addEventListener("click", () => {
+            if (!state.customInput.trim()) return;
+            stopSpeaking();
+            state.customResult = analyzeInput(state.customInput);
+            render();
+          });
+        }
+
+        const loadExampleBtn = document.getElementById("loadExampleBtn");
+        if (loadExampleBtn) {
+          loadExampleBtn.addEventListener("click", () => {
+            state.customInput = "后天就要答辩了，我总觉得自己会讲不好，越想越紧张。";
+            render();
+          });
+        }
+
+        const speakBtn = document.getElementById("speakBtn");
+        if (speakBtn) {
+          speakBtn.addEventListener("click", toggleSpeak);
+        }
+
+        const resetBtn = document.getElementById("resetBtn");
+        if (resetBtn) {
+          resetBtn.addEventListener("click", () => {
+            stopSpeaking();
+            state.customResult = null;
+            state.customInput = "";
+            render();
+          });
+        }
+      }
+
+      render();
+    </script>
+  </body>
+</html>
